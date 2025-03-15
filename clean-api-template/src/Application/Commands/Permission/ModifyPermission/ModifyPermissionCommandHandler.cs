@@ -50,7 +50,7 @@ public class ModifyPermissionCommandHandler : IRequestHandler<ModifyPermissionCo
 
         _ = await _kakfaService.ProduceAsync("test-topic", "modify");
 
-        _ = await _elasticSearchService.IndexAsync(permission);
+        _ = await _elasticSearchService.IndexAsync(permission, "modify-permissions");
 
         return true;
     }

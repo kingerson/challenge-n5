@@ -54,7 +54,7 @@ public class RequestPermissionCommandHandler : IRequestHandler<RequestPermission
 
         _ = await _kakfaService.ProduceAsync("test-topic", "request");
 
-        _ = await _elasticSearchService.IndexAsync(permission);
+        _ = await _elasticSearchService.IndexAsync(permission, "request-permissions");
 
         return permission.Id;
     }

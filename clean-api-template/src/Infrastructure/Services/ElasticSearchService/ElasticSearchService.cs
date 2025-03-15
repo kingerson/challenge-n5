@@ -18,19 +18,19 @@ public class ElasticSearchService<T> : IElasticSearchService<T> where T : Entity
         _configuration = configuration;
     }
 
-    public async Task<bool> IndexAsync(T model)
+    public async Task<bool> IndexAsync(T model, string index)
     {
         var response = await _client.IndexAsync(model, idx => idx
-                                        .Index(_configuration["ElasticSearchConfig:DefaultIndex"])
+                                        .Index(index)
                                         .Id(model.Id).Refresh(Refresh.WaitFor));
         Console.WriteLine($"ElasticSearResponse : {response}");
         return response.IsValidResponse;
     }
 
-    public async Task<bool> IndexBulkAsync(IEnumerable<T> models)
+    public async Task<bool> IndexBulkAsync(IEnumerable<T> models, string index)
     {
         var response = await _client.BulkAsync(b => b
-                                        .Index(_configuration["ElasticSearchConfig:DefaultIndex"])
+                                        .Index(index)
                                         .UpdateMany(models, (ud, u) => ud.Doc(u).DocAsUpsert(true)));
         Console.WriteLine($"ElasticSearResponse : {response}");
         return response.IsValidResponse;

@@ -33,7 +33,7 @@ public class GetAllPermissionQueryHandler : IRequestHandler<GetAllPermissionQuer
 
         var permissions = _mapper.Map<IEnumerable<Permission>>(result);
 
-        _ = await _elasticSearchService.IndexBulkAsync(permissions);
+        _ = await _elasticSearchService.IndexBulkAsync(permissions, "permissions");
 
         return result;
     }

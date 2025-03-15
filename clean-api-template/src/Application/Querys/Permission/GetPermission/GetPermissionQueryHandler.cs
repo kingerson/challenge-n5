@@ -36,7 +36,7 @@ public class GetPermissionQueryHandler : IRequestHandler<GetPermissionQuery,Perm
 
         permission.Register(result.EmployeeForename, result.EmployeeLastName, result.PermissionTypeId, result.PermissionDate);
 
-        _ = await _elasticSearchService.IndexAsync(permission);
+        _ = await _elasticSearchService.IndexAsync(permission, "permissions-id");
 
         return result;
     }

@@ -45,7 +45,7 @@ public class RequestPermissionCommandHandlerTest
         _unitOfWorkMock.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(_transactionMock.Object);
 
         _kafkaServiceMock.Setup(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
-        _elasticSearchServiceMock.Setup(e => e.IndexAsync(It.IsAny<Permission>())).ReturnsAsync(true);
+        _elasticSearchServiceMock.Setup(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>())).ReturnsAsync(true);
 
         _handler = new RequestPermissionCommandHandler(_unitOfWorkMock.Object, _executionStrategyWrapperMock.Object, _kafkaServiceMock.Object,_elasticSearchServiceMock.Object);
     }
@@ -79,7 +79,7 @@ public class RequestPermissionCommandHandlerTest
 
         // Assert
         _kafkaServiceMock.Verify(k => k.ProduceAsync("test-topic", "request"), Times.Once);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>()), Times.Once);
+        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>()), Times.Once);
 
         resultId.Should().Be(1);
     }
@@ -105,7 +105,7 @@ public class RequestPermissionCommandHandlerTest
 
         _transactionMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
         _kafkaServiceMock.Verify(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>()), Times.Never);
+        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class RequestPermissionCommandHandlerTest
         _transactionMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
 
         _kafkaServiceMock.Verify(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>()), Times.Never);
+        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

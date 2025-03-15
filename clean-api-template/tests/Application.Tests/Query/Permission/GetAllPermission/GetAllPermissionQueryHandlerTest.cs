@@ -26,7 +26,7 @@ public class GetAllPermissionQueryHandlerTest
         _mapperMock = new Mock<IMapper>();
 
         _kafkaServiceMock.Setup(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
-        _elasticSearchServiceMock.Setup(e => e.IndexBulkAsync(It.IsAny<IEnumerable<Permission>>())).ReturnsAsync(true);
+        _elasticSearchServiceMock.Setup(e => e.IndexBulkAsync(It.IsAny<IEnumerable<Permission>>(),It.IsAny<string>())).ReturnsAsync(true);
 
         _handler = new GetAllPermissionQueryHandler(_permissionRepositoryMock.Object,_kafkaServiceMock.Object,_elasticSearchServiceMock.Object,_mapperMock.Object);
     }
@@ -57,7 +57,7 @@ public class GetAllPermissionQueryHandlerTest
         _permissionRepositoryMock.Verify(r => r.GetAll(cancellationToken), Times.Once);
         _kafkaServiceMock.Verify(k => k.ProduceAsync("test-topic", "get"), Times.Once);
         _mapperMock.Verify(m => m.Map<IEnumerable<Permission>>(permissionViewModels), Times.Once);
-        _elasticSearchServiceMock.Verify(e => e.IndexBulkAsync(It.IsAny<IEnumerable<Permission>>()), Times.Once);
+        _elasticSearchServiceMock.Verify(e => e.IndexBulkAsync(It.IsAny<IEnumerable<Permission>>(), It.IsAny<string>()), Times.Once);
 
 
         result.Should().BeEquivalentTo(permissionViewModels);

@@ -41,7 +41,7 @@ public class ModifyPermissionCommandHandlerTest
         _unitOfWorkMock.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(_transactionMock.Object);
 
         _kafkaServiceMock.Setup(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
-        _elasticSearchServiceMock.Setup(e => e.IndexAsync(It.IsAny<Permission>())).ReturnsAsync(true);
+        _elasticSearchServiceMock.Setup(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>())).ReturnsAsync(true);
 
         _handler = new ModifyPermissionCommandHandler(_unitOfWorkMock.Object, _executionStrategyWrapperMock.Object, _kafkaServiceMock.Object, _elasticSearchServiceMock.Object);
     }
@@ -72,7 +72,7 @@ public class ModifyPermissionCommandHandlerTest
         _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _transactionMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
         _kafkaServiceMock.Verify(k => k.ProduceAsync("test-topic", "modify"), Times.Once);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(existingPermission), Times.Once);
+        _elasticSearchServiceMock.Verify(e => e.IndexAsync(existingPermission, "modify-permissions"), Times.Once);
 
         result.Should().BeTrue();
     }
@@ -97,7 +97,7 @@ public class ModifyPermissionCommandHandlerTest
         _permissionRepositoryMock.Verify(r => r.Update(It.IsAny<Permission>()), Times.Never);
         _transactionMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
         _kafkaServiceMock.Verify(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>()), Times.Never);
+        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>(),It.IsAny<string>()), Times.Never);
     }
     [Fact]
     public async Task Handle_WhenSaveThrowsException_ShouldRollback_AndThrowMsCleanException()
@@ -125,7 +125,7 @@ public class ModifyPermissionCommandHandlerTest
         _transactionMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
 
         _kafkaServiceMock.Verify(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>()), Times.Never);
+        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

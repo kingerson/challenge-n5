@@ -22,7 +22,7 @@ public class GetPermissionQueryHandlerTest
         _elasticSearchServiceMock = new Mock<IElasticSearchService<Permission>>();
 
         _kafkaServiceMock.Setup(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
-        _elasticSearchServiceMock.Setup(e => e.IndexAsync(It.IsAny<Permission>())).ReturnsAsync(true);
+        _elasticSearchServiceMock.Setup(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>())).ReturnsAsync(true);
 
         _handler = new GetPermissionQueryHandler(_permissionRepositoryMock.Object,_kafkaServiceMock.Object,_elasticSearchServiceMock.Object);
     }
@@ -54,7 +54,7 @@ public class GetPermissionQueryHandlerTest
 
         _permissionRepositoryMock.Verify(r => r.GetById(100, It.IsAny<CancellationToken>()), Times.Once);
         _kafkaServiceMock.Verify(k => k.ProduceAsync("test-topic", "get-id"), Times.Once);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>()), Times.Once);
+        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>()), Times.Once);
 
         result.Should().BeEquivalentTo(permissionVM);
     }
