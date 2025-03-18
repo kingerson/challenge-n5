@@ -28,6 +28,7 @@ challenge-n5/
 │  │  │  ├─ Queries
 │  │  │  ├─ Extensions
 │  │  │  ├─ Mapping
+│  │  │  ├─ Notifications
 │  │  │  ├─ BusinessExceptionMessages (contains .resx and .Designer.cs files for business exception messages)
 │  │  │  └─ Application.csproj
 │  │  ├─ Domain/
