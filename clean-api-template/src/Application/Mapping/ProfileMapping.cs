@@ -11,6 +11,8 @@ public class ProfileMapping : Profile
                .ForMember(t => t.PermissionDate, o => o.MapFrom(t => t.PermissionDate))
                .ForMember(t => t.UserRegister, o => o.MapFrom(t => t.UserRegister))
                .ForMember(t => t.DateTimeRegister, o => o.MapFrom(t => t.DateTimeRegister))
+               .ForMember(t => t.UserUpdated, o => o.MapFrom(t => t.UserUpdated))
+               .ForMember(t => t.DateTimeUpdated, o => o.MapFrom(t => t.DateTimeUpdated))
                .ForMember(t => t.PermissionTypeId, o => o.MapFrom(t => t.PermissionTypeId))
                .ForMember(t => t.IsActive, o => o.MapFrom(t => t.IsActive))
                .ReverseMap();

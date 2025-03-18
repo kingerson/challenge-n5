@@ -82,7 +82,7 @@ public class ApplicationFactory : WebApplicationFactory<MsClean.Presentation.Pro
         if (!dbContext.PermissionTypes.Any())
         {
             dbContext.PermissionTypes.AddRange([
-                    new("Admin"){
+                new("Admin"){
                     Id = 1,
                     UserRegister = "admin",
                     DateTimeRegister = DateTime.UtcNow,
@@ -120,10 +120,7 @@ public class ApplicationFactory : WebApplicationFactory<MsClean.Presentation.Pro
             };
             permissionTwo.Register("Eduardo", "Navarro", 1, DateTime.UtcNow);
 
-            dbContext.Permissions.AddRange([
-                    permissionOne,
-                permissionTwo
-            ]);
+            dbContext.Permissions.AddRange([permissionOne,permissionTwo]);
 
             dbContext.SaveChanges();
         }

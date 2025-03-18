@@ -16,7 +16,6 @@ public static class DependencyInjection
         _ = services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
         _ = services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
-        _ = services.AddTransient<IPersonQueryRepository, PersonQueryRepository>();
         _ = services.AddTransient<IPermissionRepository, PermissionRepository>();
 
         return services;

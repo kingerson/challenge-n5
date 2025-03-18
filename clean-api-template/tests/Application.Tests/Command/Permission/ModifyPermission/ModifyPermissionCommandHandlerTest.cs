@@ -2,6 +2,7 @@ namespace Application.Tests.Command;
 using System;
 using System.Threading.Tasks;
 using FluentAssertions;
+using MediatR;
 using Microsoft.EntityFrameworkCore.Storage;
 using Moq;
 using MsClean.Application;
@@ -14,21 +15,17 @@ public class ModifyPermissionCommandHandlerTest
     private readonly Mock<IRepository<Permission>> _permissionRepositoryMock;
     private readonly Mock<IDbContextTransaction> _transactionMock;
     private readonly Mock<IExecutionStrategyWrapper> _executionStrategyWrapperMock;
-    private readonly Mock<IKakfaService> _kafkaServiceMock;
-    private readonly Mock<IElasticSearchService<Permission>> _elasticSearchServiceMock;
+    private readonly Mock<IMediator> _mediatorMock;
 
     private readonly ModifyPermissionCommandHandler _handler;
 
     public ModifyPermissionCommandHandlerTest()
     {
         _executionStrategyWrapperMock = new Mock<IExecutionStrategyWrapper>();
-
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _permissionRepositoryMock = new Mock<IRepository<Permission>>();
         _transactionMock = new Mock<IDbContextTransaction>();
-
-        _kafkaServiceMock = new Mock<IKakfaService>();
-        _elasticSearchServiceMock = new Mock<IElasticSearchService<Permission>>();
+        _mediatorMock = new Mock<IMediator>();
 
         _permissionRepositoryMock.Setup(r => r.Update(It.IsAny<Permission>())).Callback<Permission>(p => p.Id = 1);
 
@@ -40,10 +37,7 @@ public class ModifyPermissionCommandHandlerTest
         _unitOfWorkMock.Setup(u => u.Repository<Permission>()).Returns(_permissionRepositoryMock.Object);
         _unitOfWorkMock.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(_transactionMock.Object);
 
-        _kafkaServiceMock.Setup(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
-        _elasticSearchServiceMock.Setup(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>())).ReturnsAsync(true);
-
-        _handler = new ModifyPermissionCommandHandler(_unitOfWorkMock.Object, _executionStrategyWrapperMock.Object, _kafkaServiceMock.Object, _elasticSearchServiceMock.Object);
+        _handler = new ModifyPermissionCommandHandler(_unitOfWorkMock.Object, _executionStrategyWrapperMock.Object, _mediatorMock.Object);
     }
 
     [Fact]
@@ -62,17 +56,16 @@ public class ModifyPermissionCommandHandlerTest
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        _permissionRepositoryMock.Verify(r => r.GetById(1), Times.Once);
-
+        
         existingPermission.EmployeeForename.Should().Be("NewName");
         existingPermission.EmployeeLastName.Should().Be("NewLastName");
         existingPermission.PermissionTypeId.Should().Be(999);
 
+        _permissionRepositoryMock.Verify(r => r.GetById(1), Times.Once);
         _permissionRepositoryMock.Verify(r => r.Update(existingPermission), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _transactionMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
-        _kafkaServiceMock.Verify(k => k.ProduceAsync("test-topic", "modify"), Times.Once);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(existingPermission, "modify-permissions"), Times.Once);
+        _mediatorMock.Verify(m => m.Publish(It.IsAny<ModifyPermissionNotification>(), It.IsAny<CancellationToken>()), Times.Once);
 
         result.Should().BeTrue();
     }
@@ -81,23 +74,20 @@ public class ModifyPermissionCommandHandlerTest
     public async Task Handle_PermissionNotFound_ShouldThrowMsCleanException()
     {
         // Arrange
-        var command = new ModifyPermissionCommand(99, "Fail", "Fail", 123);
+        var command = new ModifyPermissionCommand(100, "Fail", "Fail", 123);
 
-        _permissionRepositoryMock
-            .Setup(r => r.GetById(99))
-            .ReturnsAsync((Permission)null!);
+        _permissionRepositoryMock.Setup(r => r.GetById(100)).ReturnsAsync((Permission)null!);
 
         // Act
         var act = async () => await _handler.Handle(command, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<MsCleanException>()
-            .WithMessage("Permission with id : 99 not found");
+            .WithMessage("Permission with id : 100 not found");
 
         _permissionRepositoryMock.Verify(r => r.Update(It.IsAny<Permission>()), Times.Never);
         _transactionMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
-        _kafkaServiceMock.Verify(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>(),It.IsAny<string>()), Times.Never);
+        _mediatorMock.Verify(m => m.Publish(It.IsAny<ModifyPermissionNotification>(), It.IsAny<CancellationToken>()), Times.Never);
     }
     [Fact]
     public async Task Handle_WhenSaveThrowsException_ShouldRollback_AndThrowMsCleanException()
@@ -123,9 +113,7 @@ public class ModifyPermissionCommandHandlerTest
 
         _transactionMock.Verify(t => t.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
         _transactionMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
-
-        _kafkaServiceMock.Verify(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>()), Times.Never);
+        _mediatorMock.Verify(m => m.Publish(It.IsAny<ModifyPermissionNotification>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -135,8 +123,7 @@ public class ModifyPermissionCommandHandlerTest
         Action act = () => new ModifyPermissionCommandHandler(
             null!,
             _executionStrategyWrapperMock.Object,
-            _kafkaServiceMock.Object,
-            _elasticSearchServiceMock.Object
+            _mediatorMock.Object
         );
 
         // Assert
@@ -151,44 +138,11 @@ public class ModifyPermissionCommandHandlerTest
         Action act = () => new ModifyPermissionCommandHandler(
             _unitOfWorkMock.Object,
             null!,
-            _kafkaServiceMock.Object,
-            _elasticSearchServiceMock.Object
+            _mediatorMock.Object
         );
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
            .WithParameterName("executionStrategyWrapper");
-    }
-
-    [Fact]
-    public void Constructor_ShouldThrowArgumentNullException_WhenKafkaServiceIsNull()
-    {
-        // Act
-        Action act = () => new ModifyPermissionCommandHandler(
-            _unitOfWorkMock.Object,
-            _executionStrategyWrapperMock.Object,
-            null!,
-            _elasticSearchServiceMock.Object
-        );
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>()
-           .WithParameterName("kakfaService");
-    }
-
-    [Fact]
-    public void Constructor_ShouldThrowArgumentNullException_WhenElasticSearchServiceIsNull()
-    {
-        // Act
-        Action act = () => new ModifyPermissionCommandHandler(
-            _unitOfWorkMock.Object,
-            _executionStrategyWrapperMock.Object,
-            _kafkaServiceMock.Object,
-            null!
-        );
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>()
-           .WithParameterName("elasticSearchService");
     }
 }

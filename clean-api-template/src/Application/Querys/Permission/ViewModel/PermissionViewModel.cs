@@ -10,5 +10,7 @@ public class PermissionViewModel
     public int PermissionTypeId { get; set; }
     public string UserRegister { get; set; }
     public DateTime DateTimeRegister { get; set; }
+    public string? UserUpdated { get; set; }
+    public DateTime? DateTimeUpdated { get; set; }
     public bool IsActive { get; set; }
 }

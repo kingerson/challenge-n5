@@ -10,19 +10,16 @@ public class ModifyPermissionCommandHandler : IRequestHandler<ModifyPermissionCo
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IExecutionStrategyWrapper _executionStrategyWrapper;
-    private readonly IKakfaService _kakfaService;
-    private readonly IElasticSearchService<Permission> _elasticSearchService;
+    private readonly IMediator _mediator;
     public ModifyPermissionCommandHandler(
         IUnitOfWork unitOfWork,
         IExecutionStrategyWrapper executionStrategyWrapper,
-        IKakfaService kakfaService,
-        IElasticSearchService<Permission> elasticSearchService
+        IMediator mediator
         )
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _executionStrategyWrapper = executionStrategyWrapper ?? throw new ArgumentNullException(nameof(executionStrategyWrapper));
-        _kakfaService = kakfaService ?? throw new ArgumentNullException(nameof(kakfaService));
-        _elasticSearchService = elasticSearchService ?? throw new ArgumentNullException(nameof(elasticSearchService));
+        _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
     }
     public async Task<bool> Handle(ModifyPermissionCommand request, CancellationToken cancellationToken)
     {
@@ -48,9 +45,7 @@ public class ModifyPermissionCommandHandler : IRequestHandler<ModifyPermissionCo
             }
         });
 
-        _ = await _kakfaService.ProduceAsync("test-topic", "modify");
-
-        _ = await _elasticSearchService.IndexAsync(permission, "modify-permissions");
+        await _mediator.Publish(new ModifyPermissionNotification(permission), cancellationToken);
 
         return true;
     }

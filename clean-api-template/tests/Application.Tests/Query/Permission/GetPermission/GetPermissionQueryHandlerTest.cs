@@ -2,29 +2,23 @@ namespace Application.Tests.Query;
 using System;
 using System.Threading.Tasks;
 using FluentAssertions;
+using MediatR;
 using Moq;
 using MsClean.Application;
-using MsClean.Domain;
-using MsClean.Infrastructure;
 
 public class GetPermissionQueryHandlerTest
 {
     private readonly Mock<IPermissionRepository> _permissionRepositoryMock;
-    private readonly Mock<IKakfaService> _kafkaServiceMock;
-    private readonly Mock<IElasticSearchService<Permission>> _elasticSearchServiceMock;
+    private readonly Mock<IMediator> _mediatorMock;
 
     private readonly GetPermissionQueryHandler _handler;
 
     public GetPermissionQueryHandlerTest()
     {
         _permissionRepositoryMock = new Mock<IPermissionRepository>();
-        _kafkaServiceMock = new Mock<IKakfaService>();
-        _elasticSearchServiceMock = new Mock<IElasticSearchService<Permission>>();
+        _mediatorMock = new Mock<IMediator>();
 
-        _kafkaServiceMock.Setup(k => k.ProduceAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
-        _elasticSearchServiceMock.Setup(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>())).ReturnsAsync(true);
-
-        _handler = new GetPermissionQueryHandler(_permissionRepositoryMock.Object,_kafkaServiceMock.Object,_elasticSearchServiceMock.Object);
+        _handler = new GetPermissionQueryHandler(_permissionRepositoryMock.Object, _mediatorMock.Object);
     }
     [Fact]
     public async Task Handle_CacheMiss_ShouldRetrieveFromRepo_SetCache_ProduceKafka_AndIndexElastic()
@@ -53,9 +47,7 @@ public class GetPermissionQueryHandlerTest
         // Assert
 
         _permissionRepositoryMock.Verify(r => r.GetById(100, It.IsAny<CancellationToken>()), Times.Once);
-        _kafkaServiceMock.Verify(k => k.ProduceAsync("test-topic", "get-id"), Times.Once);
-        _elasticSearchServiceMock.Verify(e => e.IndexAsync(It.IsAny<Permission>(), It.IsAny<string>()), Times.Once);
-
+        _mediatorMock.Verify(m => m.Publish(It.IsAny<GetPermissionNotification>(), It.IsAny<CancellationToken>()), Times.Once);
         result.Should().BeEquivalentTo(permissionVM);
     }
 
@@ -65,41 +57,11 @@ public class GetPermissionQueryHandlerTest
         // Act
         Action act = () => new GetPermissionQueryHandler(
             null!,
-            _kafkaServiceMock.Object,
-            _elasticSearchServiceMock.Object
+            _mediatorMock.Object
         );
 
         // Assert
         act.Should().Throw<ArgumentNullException>().WithParameterName("permissionQueryRepository");
-    }
-
-
-    [Fact]
-    public void Constructor_ShouldThrow_WhenKafkaServiceIsNull()
-    {
-        // Act
-        Action act = () => new GetPermissionQueryHandler(
-            _permissionRepositoryMock.Object,
-            null!,
-            _elasticSearchServiceMock.Object
-        );
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("kakfaService");
-    }
-
-    [Fact]
-    public void Constructor_ShouldThrow_WhenElasticSearchServiceIsNull()
-    {
-        // Act
-        Action act = () => new GetPermissionQueryHandler(
-            _permissionRepositoryMock.Object,
-            _kafkaServiceMock.Object,
-            null!
-        );
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("elasticSearchService");
     }
 
 }
